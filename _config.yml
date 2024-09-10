@@ -1,8 +1,8 @@
 # Basic Information 
-title: Vivek V Kashyae
-position: Ph.D. Student
-affiliation: Your Affiliation
-email: yourname (at) example.edu
+title: Vivek V Kashyap
+position: Research Assistant 
+affiliation: Indian Institute of Science
+email: vivekvkashyap10@gmail.com
 
 # Search Engine Optimization (SEO)
 # The following information is used to improve the website traffic from search engines, e.g., Google.
@@ -12,11 +12,11 @@ canonical: https://minimal-light-theme.yliu.me/
 
 # Links 
 # If you don't need one of them, you may delete the corresponding line.
-google_scholar: https://scholar.google.com/
+google_scholar: https://scholar.google.com/citations?hl=en&user=ebCO7mEAAAAJ&view_op=list_works&gmla=AC6lMd_DV5MLPNhlCSBEV4zUhkn3GdfYy74AoonbxLI67V9ZywGs_B_svISGzHI1Bun1oDo-DgyAhYnixMVzQjGUVz6ecQKQvbbcjiOvH1Z_GgXH_r6Llg-Mw7haINDP
 cv_link: assets/files/curriculum_vitae.pdf
-github_link: https://github.com/
-linkedin: https://www.linkedin.com/
-twitter: https://twitter.com/
+github_link: https://github.com/vivekvkashyap
+linkedin: https://www.linkedin.com/in/vivek-v-kashyap
+twitter: https://x.com/VivekvKashyap1
 
 # Images (e.g., your profile picture and your website's favicon) 
 # "favicon" and "favicon_dark" are used for the light and dark modes, respectively. 
