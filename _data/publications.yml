@@ -1,7 +1,7 @@
 main:
 
   - title: Bayesian Pseudo-Coresets via Contrastive Divergence
-    authors: Piyush Tiwary, Vivek V Kashyap, Kumar Shubham, AP Prathosh
+    authors: Piyush Tiwary, <strong>Vivek V Kashyap</strong>, Kumar Shubham, AP Prathosh
     conference_short: UAI 2024
     conference: The 40th Conference on Uncertainty in Artificial Intelligence <strong>(UAI)</strong>, 2024.
     pdf: https://arxiv.org/abs/2303.11278
@@ -11,7 +11,7 @@ main:
     # notes: Early Accept
 
   - title: "GPT-Neo for commonsense reasoning--a theoretical and practical lens"
-    authors: <strong>Yaoyao Liu</strong>, Yuting Su, An-An Liu, Bernt Schiele, Qianru Sun
+    authors: <strong>Vivek Kashyap</strong>, Rohan Kashyap
     conference_short: CVPR
     conference: <strong>(Under Review)</strong>, 2024.
     pdf: https://arxiv.org/abs/2211.15593.pdf
