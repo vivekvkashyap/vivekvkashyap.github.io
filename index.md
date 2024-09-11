@@ -4,7 +4,7 @@ layout: homepage
 
 ## About Me
 
-I am a Ph.D. student at ...
+I am a research assistant who previously interned at the Indian Institute of Science (IISc), working on Neural Machine Translation for low-resource languages under Dr. Prathosh AP. I also interned at the Indian Institute of Technology, Bombay, under Dr. Ganesh Ramakrishnan. I hold a degree in Electrical and Electronics from Bangalore Institute of Technology
 
 ## Research Interests
 

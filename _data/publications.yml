@@ -12,7 +12,7 @@ main:
 
   - title: "GPT-Neo for commonsense reasoning--a theoretical and practical lens"
     authors: <strong>Vivek Kashyap</strong>, Rohan Kashyap
-    conference_short: CVPR
+    # conference_short: CVPR
     conference: <strong>(Under Review)</strong>, 2024.
     pdf: https://arxiv.org/abs/2211.15593.pdf
     # code: https://github.com/yaoyao-liu/class-incremental-learning/tree/main/mnemonics-training
