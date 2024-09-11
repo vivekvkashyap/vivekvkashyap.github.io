@@ -4,19 +4,25 @@ layout: homepage
 
 ## About Me
 
-I am a research assistant who previously interned at the Indian Institute of Science (IISc), working on Neural Machine Translation for low-resource languages under Dr. Prathosh AP. I also interned at the Indian Institute of Technology, Bombay, under Dr. Ganesh Ramakrishnan. I hold a degree in Electrical and Electronics from Bangalore Institute of Technology
+I am a research assistant who previously interned at the Indian Institute of Science [IISc] (https://iisc.ac.in/), working on Neural Machine Translation for low-resource languages under [Dr. Prathosh AP] (https://eecs.iisc.ac.in/people/prathosh-a-p/). I also interned at the Indian Institute of Technology Bombay [IIT-B] (https://www.iitb.ac.in/), under [Dr. Ganesh Ramakrishnan] (https://www.cse.iitb.ac.in/~ganesh/). I did my undergrad in Electrical and Electronics from Bangalore Institute of Technology.
 
 ## Research Interests
 
-- **Computer Vision:** image recognition, image generation, video captioning
-- **Machine Learning:** meta-learning, incremental learning, transfer learning
+- **Natural Language Processing:** Large Language Models, Neural Machine Translation
+- **Computer Vision:** Unsupervised Learning, Image and Video Generations, Diffusion models, VAE, GANs
+- **Machine Learning:** Transfer learning, Incremental Learning, Reinforcement Learning, Meta Learning
+
+
 
 ## News
 
-- **[Feb. 2020]** Our paper about incremental learning is accepted to CVPR 2020.
-- **[Feb. 2020]** We will host the ACM Multimedia Asia 2020 conference in Singapore!
-- **[Sept. 2019]** Our paper about few-shot learning is accepted to NeurIPS 2019.
-- **[Mar. 2019]** Our paper about few-shot learning is accepted to CVPR 2019.
+- **[Jan. 2024]** Selected as a Research Assistant at IISc.
+- **[April. 2024]** Paper Accepted at [UAI] (https://www.auai.org/uai2024/) 2024
+- **[Dec. 2024]** Paper on Large Language Models on common sense reasoning tasks -submitted.
+- **[June. 2023]** Joined as a Research ML Intern at IIT-B.
+- **[Aug. 2023]** Graduated from BIT with a major in EEE.
+- **[June. 2022]** Joined as a Research Intern at IISc.
+
 
 {% include_relative _includes/publications.md %}
 
