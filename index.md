@@ -16,14 +16,14 @@ I am a research assistant who previously interned at the Indian Institute of Sci
 
 ## News
 
-- **[Jan. 2024]** Selected as a Research Assistant at IISc.
-- **[April. 2024]** Paper Accepted at [UAI](https://www.auai.org/uai2024/) 2024
-- **[Dec. 2024]** Paper on Large Language Models on common sense reasoning tasks -submitted.
-- **[June. 2023]** Joined as a Research ML Intern at IIT-B.
+- **[Jan. 2024]** Selected as a Research Assistant at IISc to develop translation models for low-resource languages like Kannada and Sanskrit..
+- **[April. 2024]** Paper "Bayesian Pseudo-Coresets via Contrastive Divergence" accepted at Uncertainty in Artificial Intelligence [UAI](https://www.auai.org/uai2024/) 2024
+- **[Dec. 2024]** Paper submitted on fine-tuning and analyzing GPT models for common-sense reasoning tasks with various different tests.
+- **[June. 2023]** Joined as a Research ML Intern at IIT-B to work on health chatbot models using LLMs and RAG methods with Llama-2 for fine-tuning.
 - **[Aug. 2023]** Graduated from BIT with a major in EEE.
-- **[June. 2022]** Joined as a Research Intern at IISc.
+- **[June. 2022]** Joined as a Research Intern at IISc to work on unsupervised learning and energy-based models..
 
 
 {% include_relative _includes/publications.md %}
 
-<!-- {% include_relative _includes/services.md %} -->
+{% include_relative _includes/services.md %}
