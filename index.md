@@ -26,4 +26,4 @@ I am a research assistant who previously interned at the Indian Institute of Sci
 
 {% include_relative _includes/publications.md %}
 
-{% include_relative _includes/services.md %}
+<!-- {% include_relative _includes/services.md %} -->
