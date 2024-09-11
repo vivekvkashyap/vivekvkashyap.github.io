@@ -7,26 +7,16 @@ main:
     pdf: https://arxiv.org/abs/2303.11278
     code: https://github.com/backpropagator/BPCCD
     # bibtex: https://bib.yliu.me/MICCAI23.txt
-    # image: ./assets/img/teaser_example_2.png
+    image: ./assets/img/Bayesian_Psuedo.png
     # notes: Early Accept
 
   - title: "GPT-Neo for commonsense reasoning--a theoretical and practical lens"
     authors: <strong>Vivek Kashyap</strong>, Rohan Kashyap
     conference_short: CVPR
-<<<<<<< HEAD
-    conference: IEEE/CVF Conference on Computer Vision and Pattern Recognition <strong>(CVPR)</strong>, 2020.
-    pdf: https://arxiv.org/pdf/2002.10211.pdf
-    code: https://github.com/yaoyao-liu/class-incremental-learning/tree/main/mnemonics-training
-    page: https://class-il.mpi-inf.mpg.de/mnemonics/
-    bibtex: https://class-il.mpi-inf.mpg.de/mnemonics/
-    notes: Oral Presentation
-    image: ./assets/img/teaser_example.png
-=======
     conference: <strong>(Under Review)</strong>, 2024.
     pdf: https://arxiv.org/abs/2211.15593.pdf
     # code: https://github.com/yaoyao-liu/class-incremental-learning/tree/main/mnemonics-training
     # page: https://class-il.mpi-inf.mpg.de/mnemonics/
     # bibtex: https://class-il.mpi-inf.mpg.de/mnemonics/
     # notes: Oral Presentation
-    # image: ./assets/img/teaser_example.png
->>>>>>> refs/remotes/origin/main
+    image: ./assets/img/gpt.png
