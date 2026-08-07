@@ -186,7 +186,7 @@
 
         <p class="src">(<code>dispatcher.py:238</code>)</p>
 
-        <p>Its own docstring sums it up: "schedule, wait, collect, repeat." Two calls matter. <code>fill_inflight</code> is the schedule step, it starts new rollouts. <code>handle_completed_rollout</code> is the collect step, it deals with rollouts that just finished. Everything in the dispatcher hangs off one of these two. Let's follow the schedule side first.</p>
+        <p>Two calls matter. <code>fill_inflight</code> is the schedule step, it starts new rollouts. <code>handle_completed_rollout</code> is the collect step, it deals with rollouts that just finished. Everything in the dispatcher hangs off one of these two. Let's follow the schedule side first.</p>
 
         <h3>fill_inflight()</h3>
 
