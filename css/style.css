@@ -631,6 +631,15 @@ main { padding-top: 2.6rem; }
   color: var(--muted);
 }
 
+/* disclosure note under the title */
+.post-body .note {
+  font-size: .82rem;
+  font-style: italic;
+  color: var(--muted);
+  border-left: 2px solid var(--line-hi);
+  padding-left: .85rem;
+}
+
 /* inline code: a soft neutral pill that blends into prose. Dark pills read
    badly mid-sentence, so only the big blocks (pre.hl) go dark. */
 .post-body code {

@@ -36,6 +36,8 @@
       </div>
 
       <div class="post-body">
+        <p class="note">Note: my notes, cleaned up with AI.</p>
+
         <p>In <a href="https://vivekvkashyap.github.io/posts/rl-infra-orchestrator-part-1.html">part 1</a> we looked at the orchestrator's main loop, the thing that pulls finished rollouts off a queue, hands them to the train sink, and ships full batches to the trainer. But two lines in that loop were basically black boxes: <code>dispatcher.out_q.get()</code>, where a finished rollout showed up, and <code>train_sink.add(episode)</code>, which turned rollouts into a batch. Today we open both of them up. Part 1 was more of a map than a deep dive, so this one goes the other way, close to line by line.</p>
 
         <p>Here are the two pieces:</p>
