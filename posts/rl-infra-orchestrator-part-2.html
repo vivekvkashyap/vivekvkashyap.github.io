@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RL Infra Orchestrator - Part 2: Dispatcher and Train Sink — Vivek Kashyap</title>
+  <meta name="description" content="A close read of prime-rl&#x27;s dispatcher and train sink: how a prompt becomes a scheduled rollout, and how finished rollouts become the batches the trainer learns from.">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/theme.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <header class="site-header">
+    <a class="brand" href="../index.html">Vivek Kashyap</a>
+    <div class="nav-group">
+      <nav class="site-nav">
+        <a href="../index.html">Intro</a>
+        <a href="../blog.html" aria-current="page">Blog</a>
+        <a href="../projects.html">Projects</a>
+        <a href="../publications.html">Publications</a>
+      </nav>
+      <button class="theme-btn" id="theme-toggle" aria-label="Toggle light and dark theme">
+        <svg id="theme-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"></svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <a class="back" href="../blog.html">&#8592; Back to writing</a>
+
+    <article class="post">
+      <div class="post-head">
+        <h1>RL Infra Orchestrator - Part 2: Dispatcher and Train Sink</h1>
+        <time class="post-date" datetime="2026-08-07">7 August 2026</time>
+      </div>
+
+      <div class="post-body">
+        <p>In <a href="https://vivekvkashyap.github.io/posts/rl-infra-orchestrator-part-1.html">part 1</a> we looked at the orchestrator's main loop, the thing that pulls finished rollouts off a queue, hands them to the train sink, and ships full batches to the trainer. But two lines in that loop were basically black boxes: <code>dispatcher.out_q.get()</code>, where a finished rollout showed up, and <code>train_sink.add(episode)</code>, which turned rollouts into a batch. Today we open both of them up. Part 1 was more of a map than a deep dive, so this one goes the other way, close to line by line.</p>
+
+        <p>Here are the two pieces:</p>
+
+        <ol class="steps"><li><p><strong>Dispatcher.</strong> It decides which prompts to run, sends them off to inference, keeps the engine busy, and drops each finished rollout onto the queue.</p></li><li><p><strong>Train sink.</strong> It takes those finished rollouts and turns them into the batches the trainer learns from, tokenizing them, computing advantages, and filtering out the junk.</p></li></ol>
+
+        <p>Together they're the whole path a rollout takes, from a prompt we want to run to a batch we hand the trainer. We'll start with the train sink, then come back to the dispatcher. Let's dive in.</p>
+
+        <h2>The train sink</h2>
+
+        <p>The train sink's job is to take the finished rollouts and turn them into training data. A rollout on its own is just a conversation with a reward attached, and the trainer can't learn from that directly. It needs flat token sequences with advantages attached, packed into a batch. Turning one into the other is what the sink does.</p>
+
+        <p>From part 1, the main loop hands each finished episode to the sink:</p>
+
+        <pre class="hl"><code><span class="n">train_batch</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_sink</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">episode</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">train_batch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">draining</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">stopped</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+    <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">finalize_train_batch</span><span class="p">(</span><span class="n">train_batch</span><span class="p">)</span></code></pre>
+
+        <p class="src">(<code>orchestrator.py:555</code>)</p>
+
+        <p>So <code>add</code> is the entry point. It gets called once per finished episode. Most of the time it returns <code>None</code> because it's still collecting, but every so often it returns a full <code>TrainBatch</code> that's ready to ship.</p>
+
+        <p>Here's <code>add</code>:</p>
+
+        <pre class="hl"><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">episode</span><span class="p">):</span>
+    <span class="n">group_id</span> <span class="o">=</span> <span class="n">episode</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">group_id</span>
+    <span class="n">env_name</span> <span class="o">=</span> <span class="n">episode</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">env_name</span>
+    <span class="k">for</span> <span class="n">rollout</span> <span class="ow">in</span> <span class="n">episode</span><span class="p">:</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_rollout</span><span class="p">(</span><span class="n">rollout</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">pending_groups</span><span class="p">[</span><span class="n">group_id</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">episode</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">pending_group_episodes</span><span class="p">[</span><span class="n">group_id</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pending_group_episodes</span><span class="p">[</span><span class="n">group_id</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_size_for</span><span class="p">(</span><span class="n">env_name</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>                                  <span class="c1"># group not complete yet</span>
+    <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_group</span><span class="p">(</span><span class="n">group_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ready</span><span class="p">:</span>                                         <span class="c1"># batch full?</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_batch</span><span class="p">()</span>
+    <span class="k">return</span> <span class="kc">None</span></code></pre>
+
+        <p class="src">(<code>train_sink.py:127</code>)</p>
+
+        <h3>process_rollout()</h3>
+
+        <p>This is the tokenization step. It takes one rollout and turns it into the flat token form the trainer needs.</p>
+
+        <pre class="hl"><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">process_rollout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rollout</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">rollout</span><span class="o">.</span><span class="n">has_error</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">rollout</span><span class="o">.</span><span class="n">trainable</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="n">samples</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">to_thread</span><span class="p">(</span>
+        <span class="n">trace_to_samples</span><span class="p">,</span> <span class="n">rollout</span><span class="p">,</span> <span class="n">env_name</span><span class="o">=</span><span class="n">rollout</span><span class="o">.</span><span class="n">env_name</span><span class="p">,</span>
+        <span class="n">mm_token_type_ids_mapping</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mm_token_type_ids_mapping</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">rollout</span><span class="o">.</span><span class="n">samples</span> <span class="o">=</span> <span class="n">samples</span> <span class="ow">or</span> <span class="p">[]</span></code></pre>
+
+        <p class="src">(<code>train_sink.py:153</code>)</p>
+
+        <p><code>trace_to_samples</code> turns the rollout into <code>TrainingSample</code>s: the token ids plus a mask marking which tokens the model generated (the ones we train on) versus which are context. This runs on a worker thread so the tokenization overlaps with the dispatcher producing more rollouts, instead of blocking everything.</p>
+
+        <p>Errored and untrainable rollouts skip all of this. There's no point tokenizing something we're going to throw away.</p>
+
+        <h3>process_group()</h3>
+
+        <p>This fires once a whole group has arrived, all <code>group_size</code> attempts at the same prompt, and it's where they get scored into advantages.</p>
+
+        <p>First it pulls the group out and records every rollout in it:</p>
+
+        <pre class="hl"><code><span class="n">group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pending_groups</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">group_id</span><span class="p">,</span> <span class="p">[])</span>
+<span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">group</span><span class="p">:</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">pending_rollouts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="p">)</span></code></pre>
+
+        <p class="src">(<code>train_sink.py:176</code>)</p>
+
+        <p>That <code>pending_rollouts</code> list is the observation window, everything we've seen since the last batch, kept for metrics. Even rollouts we're about to drop get added, because we still want them in the stats.</p>
+
+        <p>Then the errored rollouts are dropped and the survivors go to the algorithm:</p>
+
+        <pre class="hl"><code><span class="k">await</span> <span class="n">env</span><span class="o">.</span><span class="n">algorithm</span><span class="o">.</span><span class="n">finalize_group</span><span class="p">(</span><span class="n">survivors</span><span class="p">)</span></code></pre>
+
+        <p class="src">(<code>train_sink.py:212</code>)</p>
+
+        <p>This is the line that scores the group into advantages, and it's the piece prime-rl made swappable. <code>env.algorithm</code> might be GRPO or something else, and whichever it is computes the advantages and stamps them onto the samples. The sink just calls <code>finalize_group</code> and lets the algorithm handle it. We'll open up the algorithms in a later post.</p>
+
+        <p>After scoring, it copies the env's sampling temperature onto every token (nothing interesting, just a fan-out), then runs the filters:</p>
+
+        <pre class="hl"><code><span class="n">apply_filters</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pre_filters</span><span class="p">,</span> <span class="n">survivors</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">survivors</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">is_filtered</span><span class="p">:</span>
+        <span class="k">continue</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">pending_batch</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="p">)</span></code></pre>
+
+        <p class="src">(<code>train_sink.py:221</code>)</p>
+
+        <p>The filters flag junk like gibberish or repetition, and anything flagged is skipped. Everything clean lands in <code>pending_batch</code>, the list <code>process_batch</code> pulls batches from.</p>
+
+        <p>So a group comes in, loses its errored and filtered rollouts, and puts the clean ones on the batch list. Two lists to keep straight: <code>pending_rollouts</code> has everything (for metrics), <code>pending_batch</code> has only the clean ones (for training).</p>
+
+        <h3>process_batch()</h3>
+
+        <p>First thing to notice, this one is not async:</p>
+
+        <pre class="hl"><code><span class="k">def</span><span class="w"> </span><span class="nf">process_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="o">...</span></code></pre>
+
+        <p class="src">(<code>train_sink.py:253</code>)</p>
+
+        <p>Every other step was <code>async</code> because it did IO (tokenizing on a thread, scoring against a teacher over the network). <code>process_batch</code> is pure CPU. It's just slicing lists in memory, so there's nothing to await.</p>
+
+        <p>What it does is small. It takes a batch-sized chunk off <code>pending_batch</code>, runs the post-batch filters, and flattens the survivors into samples:</p>
+
+        <pre class="hl"><code><span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_filters</span><span class="p">:</span>
+    <span class="n">apply_filters</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">post_filters</span><span class="p">,</span> <span class="n">cohort</span><span class="p">)</span>
+<span class="n">samples</span> <span class="o">=</span> <span class="p">[</span><span class="n">sample</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">cohort</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">r</span><span class="o">.</span><span class="n">is_filtered</span> <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">samples</span><span class="p">]</span></code></pre>
+
+        <p class="src">(<code>train_sink.py:275</code>)</p>
+
+        <p>"Flatten" here means going from rollouts to samples. Remember each rollout was tokenized into one or more <code>TrainingSample</code>s back in <code>process_rollout</code>. This line walks the chosen rollouts, skips any that got filtered, and collects all their samples into one flat list. That flat list is the payload the trainer trains on.</p>
+
+        <p>Finally, it resets the observation window and returns the batch:</p>
+
+        <pre class="hl"><code><span class="n">rollouts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pending_rollouts</span>
+<span class="k">if</span> <span class="n">samples</span><span class="p">:</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">pending_rollouts</span> <span class="o">=</span> <span class="n">TrainRollouts</span><span class="p">()</span>
+<span class="k">return</span> <span class="n">TrainBatch</span><span class="p">(</span><span class="n">rollouts</span><span class="o">=</span><span class="n">rollouts</span><span class="p">,</span> <span class="n">samples</span><span class="o">=</span><span class="n">samples</span><span class="p">)</span></code></pre>
+
+        <p class="src">(<code>train_sink.py:288</code>)</p>
+
+        <p><code>pending_rollouts</code> is the window we've been filling up in process_group. It gets handed off with the batch (for metrics) and reset to empty for the next round. The result is a <code>TrainBatch</code> carrying <code>samples</code> (what gets trained on) and <code>rollouts</code> (what gets measured). That's exactly the <code>TrainBatch</code> the main loop's <code>finalize_train_batch</code> picks up and ships to the trainer.</p>
+
+        <p>And that's the whole train sink. One rollout comes in and gets tokenized, a full group gets scored into advantages, and enough scored survivors get packed into a batch.</p>
+
+        <h2>The dispatcher</h2>
+
+        <p>One thing before we start: the dispatcher is big, around 700 lines, and it does more than we'll get into here. It also cancels stale rollouts when the weights update, schedules evals, and handles shutdown, and we're skipping all of that. We'll just follow the main path, how a rollout gets scheduled, run, and handed back. That's still most of the file.</p>
+
+        <p>Back in part 1, <code>start()</code> spun the dispatcher up as a background task with <code>asyncio.create_task(self.dispatcher.start(), ...)</code>. So it runs its own loop, forever, next to the main loop.</p>
+
+        <h3>start()</h3>
+
+        <p>Here's that loop, trimmed:</p>
+
+        <pre class="hl"><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">stopped</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_inflight</span><span class="p">()</span>
+        <span class="n">done</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inflight</span><span class="p">,</span> <span class="n">return_when</span><span class="o">=</span><span class="n">asyncio</span><span class="o">.</span><span class="n">FIRST_COMPLETED</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">done</span><span class="p">:</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">handle_completed_rollout</span><span class="p">(</span><span class="n">task</span><span class="p">)</span></code></pre>
+
+        <p class="src">(<code>dispatcher.py:238</code>)</p>
+
+        <p>Its own docstring sums it up: "schedule, wait, collect, repeat." Two calls matter. <code>fill_inflight</code> is the schedule step, it starts new rollouts. <code>handle_completed_rollout</code> is the collect step, it deals with rollouts that just finished. Everything in the dispatcher hangs off one of these two. Let's follow the schedule side first.</p>
+
+        <h3>fill_inflight()</h3>
+
+        <p><code>fill_inflight</code> keeps starting rollouts until either there's no room left or there's nothing left to start. That's the whole idea, keep the inference engine as busy as it's allowed to be.</p>
+
+        <p>All it really does is call <code>try_schedule</code> in a loop:</p>
+
+        <pre class="hl"><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">fill_inflight</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_permits</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">scheduled</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">try_schedule</span><span class="p">(</span><span class="s2">&quot;train&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">scheduled</span><span class="p">:</span>
+            <span class="k">return</span></code></pre>
+
+        <p class="src">(<code>dispatcher.py:306</code>)</p>
+
+        <p>So each pass either starts one rollout (through <code>try_schedule</code>) or stops because we're full or out of work. (There's also an eval-vs-train mode in here, but ignore that for now.) The real logic is in <code>try_schedule</code>.</p>
+
+        <h3>try_schedule()</h3>
+
+        <p><code>try_schedule</code> starts exactly one rollout, and its main decision is about the KV cache.</p>
+
+        <p>Here's the idea. Rollouts come in groups, several attempts at the same prompt. Since all attempts of a group share that prompt, sending them to the same inference server means the server already has the prompt cached and doesn't recompute it. So <code>try_schedule</code> prefers to continue a group that's already open before starting a brand new prompt:</p>
+
+        <pre class="hl"><code><span class="k">for</span> <span class="n">gid</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">group</span><span class="o">.</span><span class="n">rollouts_to_schedule</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>       <span class="c1"># this group still has attempts left</span>
+        <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">schedule_group_rollout</span><span class="p">(</span><span class="n">gid</span><span class="p">,</span> <span class="n">group</span><span class="p">)</span>
+
+<span class="n">fresh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_fresh_group</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>           <span class="c1"># nothing open, grab a new prompt</span>
+<span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">schedule_group_rollout</span><span class="p">(</span><span class="n">gid</span><span class="p">,</span> <span class="n">fresh</span><span class="p">)</span></code></pre>
+
+        <p class="src">(<code>dispatcher.py:343</code>)</p>
+
+        <p>So if a group is open (still has attempts to launch), continue it. If not, open a fresh one. Either way it ends by calling <code>schedule_group_rollout</code>, which is where the rollout gets fired off.</p>
+
+        <h3>schedule_group_rollout()</h3>
+
+        <p>This is the one that launches a rollout. Three things worth pulling out.</p>
+
+        <p><strong>The pinned client.</strong> The first attempt of a group picks an inference server, and every later attempt reuses the same one:</p>
+
+        <pre class="hl"><code><span class="k">if</span> <span class="n">group</span><span class="o">.</span><span class="n">pinned_client</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">pinned_client</span> <span class="o">=</span> <span class="k">await</span> <span class="n">pool</span><span class="o">.</span><span class="n">select_train_client</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="n">client</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">pinned_client</span></code></pre>
+
+        <p class="src">(<code>dispatcher.py:415</code>)</p>
+
+        <p>This is the cache idea from <code>try_schedule</code> made real. Pinning the whole group to one server (<code>pinned_client</code>) is what makes all its attempts hit the same cached prompt.</p>
+
+        <p><strong>Running the environment.</strong> Then it reserves capacity and starts the rollout:</p>
+
+        <pre class="hl"><code><span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">acquire</span><span class="p">(</span><span class="n">permits</span><span class="p">)</span>
+<span class="n">task</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="n">env</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span> <span class="n">model_name</span><span class="o">=</span><span class="n">model_name</span><span class="p">,</span> <span class="o">**</span><span class="n">addressing</span><span class="p">))</span></code></pre>
+
+        <p class="src">(<code>dispatcher.py:463</code>)</p>
+
+        <p><code>env.run</code> is where the rollout actually runs. The env drives the agent and calls the inference server to generate, and <code>create_task</code> launches it in the background so the dispatcher can move on. There are two flavors: modern (v1) envs run one rollout at a time with <code>env.run</code>, while older (v0) envs run the whole group in one shot with <code>env.run_group</code>. Same idea, one just batches the group together.</p>
+
+        <p><strong>Permits.</strong> That <code>acquire</code> reserves "permits." A permit is just a slot for one in-flight rollout. The dispatcher has a fixed number of them, so permits are how it caps how many rollouts run at once. Start a rollout, take a permit. Finish one, give it back.</p>
+
+        <h3>next_fresh_group()</h3>
+
+        <p>The one piece we skipped: when there's no open group to continue, <code>next_fresh_group</code> grabs a new prompt from the source.</p>
+
+        <pre class="hl"><code><span class="n">example</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">next_example</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">available_permits</span><span class="p">)</span>
+<span class="o">...</span>
+<span class="n">policy_version_at_start</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">version</span><span class="p">,</span></code></pre>
+
+        <p class="src">(<code>dispatcher.py:369</code>)</p>
+
+        <p><code>source.next_example</code> just hands over the next prompt to run. The new group gets stamped with the current policy version, which is the <code>policy_version</code> tag we used in part 1 for off-policy staleness. Then it goes back to <code>try_schedule</code>, which passes it to <code>schedule_group_rollout</code> like any other group.</p>
+
+        <p>That's the whole schedule side: <code>fill_inflight</code> loops, <code>try_schedule</code> picks a group (open or fresh), and <code>schedule_group_rollout</code> fires the rollout at a pinned server.</p>
+
+        <h3>handle_completed_rollout()</h3>
+
+        <p>Now the collect side. When a rollout finishes, <code>start()</code> calls this on it. Its job is to emit every finished rollout exactly once onto <code>out_q</code>, the queue the main loop reads from.</p>
+
+        <p>First it takes the rollout out of the in-flight ledger and gives back its permit:</p>
+
+        <pre class="hl"><code><span class="n">meta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inflight</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">meta</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">return</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">release</span><span class="p">(</span><span class="n">meta</span><span class="o">.</span><span class="n">rollout_count</span><span class="p">)</span></code></pre>
+
+        <p class="src">(<code>dispatcher.py:504</code>)</p>
+
+        <p><code>release</code> returns the permit we took when we started the rollout, freeing a slot for a new one. (The <code>meta is None</code> check just means "someone already handled this," so skip it.)</p>
+
+        <p>Then it gets the result, and this is where the different endings are handled:</p>
+
+        <pre class="hl"><code><span class="k">try</span><span class="p">:</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+    <span class="n">rollouts</span> <span class="o">=</span> <span class="n">result</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="p">[</span><span class="n">result</span><span class="p">]</span>
+<span class="k">except</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">CancelledError</span><span class="p">:</span>
+    <span class="k">return</span>
+<span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+    <span class="n">rollouts</span> <span class="o">=</span> <span class="p">[</span><span class="n">Rollout</span><span class="p">(</span><span class="o">...</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">meta</span><span class="o">.</span><span class="n">rollout_count</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rollouts</span><span class="p">:</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">capture_error</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span></code></pre>
+
+        <p class="src">(<code>dispatcher.py:511</code>)</p>
+
+        <p>Three cases. If it succeeded, we get the real rollouts. If it was cancelled, we just return, someone else already cleaned it up. If it crashed, we build placeholder rollouts and stamp the error on them, so the failure still flows through instead of vanishing.</p>
+
+        <p>There's also an empty-rollout case just below:</p>
+
+        <pre class="hl"><code><span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rollouts</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">r</span><span class="o">.</span><span class="n">has_error</span> <span class="ow">and</span> <span class="n">r</span><span class="o">.</span><span class="n">num_turns</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vf</span><span class="o">.</span><span class="n">Error</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;EmptyTrajectory&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">))</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">ok</span> <span class="o">=</span> <span class="kc">False</span></code></pre>
+
+        <p class="src">(<code>dispatcher.py:529</code>)</p>
+
+        <p>A rollout that came back with nothing (no error, but zero turns) gets marked as an error too. The point of all this is uniformity: success, crash, cancel, or empty, everything ends up as a rollout with a clear status, so nothing the dispatcher started ever silently disappears. Then it hands the rollouts to <code>emit_episode</code>.</p>
+
+        <h3>emit_episode()</h3>
+
+        <p>Last step, and it's short. It stamps the rollouts with their tags and puts them on the queue:</p>
+
+        <pre class="hl"><code><span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_q</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">rollouts</span><span class="p">)</span></code></pre>
+
+        <p class="src">(<code>dispatcher.py:572</code>)</p>
+
+        <p>That <code>out_q.put</code> is the handoff. This is the exact queue the main loop pulls from with <code>dispatcher.out_q.get()</code> back in part 1. So the moment this line runs, the rollout leaves the dispatcher's world and becomes the main loop's problem, which feeds it to the train sink we just covered.</p>
+
+        <p>And that's the round trip. <code>fill_inflight</code> starts rollouts, they run in the background, <code>handle_completed_rollout</code> collects them when they finish, and <code>emit_episode</code> drops them on the queue for the main loop.</p>
+
+        <p><em>Thanks for reading — if you made it all the way down here, I appreciate it.</em></p>
+      </div>
+    </article>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Projects — Vivek Kashyap</title>
+  <meta name="description" content="Projects by Vivek Kashyap, each linking straight to its source on GitHub.">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/theme.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <header class="site-header">
+    <a class="brand" href="index.html">Vivek Kashyap</a>
+    <div class="nav-group">
+      <nav class="site-nav">
+        <a href="index.html">Intro</a>
+        <a href="blog.html">Blog</a>
+        <a href="projects.html" aria-current="page">Projects</a>
+        <a href="publications.html">Publications</a>
+      </nav>
+      <button class="theme-btn" id="theme-toggle" aria-label="Toggle light and dark theme">
+        <svg id="theme-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"></svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <div class="section-label">Projects</div>
+
+    <!-- To add a project, copy one block below and renumber the .ix values.
+         The whole row is the link — point href at the GitHub repo.
+    -->
+    <div class="rows">
+
+      <a class="row proj-row" href="https://github.com/vivekvkashyap/autoresearch-rl" target="_blank" rel="noopener">
+        <span class="ix">01</span>
+        <span class="title">AutoResearch-RL</span>
+        <time class="date" datetime="2026">2026</time>
+        <span class="gh">GitHub &#8599;</span>
+        <span class="desc">An AI agent that runs RL post-training experiments overnight — edits the config, trains for ten minutes, keeps or discards, and moves to the next idea. Built on prime-rl and verifiers.</span>
+      </a>
+
+      <a class="row proj-row" href="https://github.com/vivekvkashyap/synthetic-self-improve-rl" target="_blank" rel="noopener">
+        <span class="ix">02</span>
+        <span class="title">Synthetic Self-Improvement</span>
+        <time class="date" datetime="2026">2026</time>
+        <span class="gh">GitHub &#8599;</span>
+        <span class="desc">A Claude Code skill where Claude designs the synthetic data, environment, and rewards to post-train a smaller model — in a loop, until a wall-clock budget runs out.</span>
+      </a>
+
+      <a class="row proj-row" href="https://github.com/vivekvkashyap/RLEnv_audit" target="_blank" rel="noopener">
+        <span class="ix">03</span>
+        <span class="title">RL Environment Audit</span>
+        <time class="date" datetime="2026">2026</time>
+        <span class="gh">GitHub &#8599;</span>
+        <span class="desc">Audits verifiers RL environments from the Prime Intellect Hub before you train on them — six checks and a scorecard out of ten, because a broken reward silently teaches the policy garbage.</span>
+      </a>
+
+      <a class="row proj-row" href="https://github.com/vivekvkashyap/flash_attention_from_scratch" target="_blank" rel="noopener">
+        <span class="ix">04</span>
+        <span class="title">Flash Attention From Scratch</span>
+        <time class="date" datetime="2025">2025</time>
+        <span class="gh">GitHub &#8599;</span>
+        <span class="desc">CUDA implementations of Flash Attention 1 and 2 written from scratch, following the original papers — tiling, fused online softmax, and FP16 and pipelined variants.</span>
+      </a>
+
+    </div>
+  </main>
+</div>
+</body>
+</html>

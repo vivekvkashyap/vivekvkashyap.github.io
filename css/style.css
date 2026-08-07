@@ -1,0 +1,708 @@
+/* ===========================================================
+   Vivek Kashyap — personal site
+   One stylesheet for every page. Colours live as variables at
+   the top; change them here and the whole site follows.
+   =========================================================== */
+
+/* ---------- colours ---------- */
+
+:root,
+:root[data-theme="light"] {
+  --ground:  #E7E7E3;   /* dimmed a notch from bright white */
+  --ink:     #0F0F0F;
+  --muted:   #6E6E72;
+  --faint:   #90909A;
+  --line:    #D2D2CD;
+  --line-hi: #0F0F0F;
+  --accent:  #C43520;
+  --blue:    #2563EB;
+  --hover:   #DCDCD7;
+  --code-bg:     #FBFBF8;   /* near-white panel lifts off the dimmed page */
+  --code-border: #C4C4BD;   /* darker than --line so the box is defined   */
+}
+
+:root[data-theme="dark"] {
+  --ground:  #111110;   /* page background          */
+  --ink:     #EDEDEA;   /* main text                */
+  --muted:   #85857F;   /* secondary text           */
+  --faint:   #5C5C57;   /* dates, small labels      */
+  --line:    #292927;   /* hairline dividers        */
+  --line-hi: #EDEDEA;   /* strong dividers          */
+  --accent:  #E0492F;   /* the one red mark         */
+  --blue:    #5B8DEF;   /* link / project accent    */
+  --hover:   #1A1A18;   /* row hover background     */
+  --code-bg:     #1A1A18;   /* a notch above the page   */
+  --code-border: #333330;
+}
+
+/* ---------- reset ---------- */
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+body,
+h1, h2, h3, p, figure { margin: 0; }
+
+img { max-width: 100%; display: block; }
+
+/* ---------- base ---------- */
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: Georgia, Cambria, "Iowan Old Style", serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  transition: background .18s ease, color .18s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.page {
+  max-width: 50rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 6rem;
+}
+
+/* ---------- header ---------- */
+
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--line-hi);
+}
+
+.brand {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.nav-group {
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+}
+
+.site-nav {
+  display: flex;
+  gap: 1.1rem;
+}
+
+.site-nav a {
+  font-size: .78rem;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.site-nav a:hover { color: var(--ink); }
+
+.site-nav a[aria-current="page"] { color: var(--ink); }
+
+.site-nav a[aria-current="page"]::after {
+  content: "\25CF";                 /* small filled circle */
+  color: var(--blue);
+  font-size: .38rem;
+  vertical-align: .28em;
+  margin-left: .3em;
+}
+
+.theme-btn {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.theme-btn:hover {
+  color: var(--ink);
+  border-color: var(--line-hi);
+}
+
+.theme-btn svg { fill: currentColor; }
+
+/* ---------- shared section label ---------- */
+
+main { padding-top: 2.6rem; }
+
+.section-label {
+  font-size: .6rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-bottom: .55rem;
+  border-bottom: 1px solid var(--line-hi);
+}
+
+/* ===========================================================
+   INTRO PAGE
+   =========================================================== */
+
+.intro-top {
+  display: flex;
+  gap: 1.6rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.intro-lead {
+  flex: 1;
+  min-width: 15rem;
+  display: flex;
+  flex-direction: column;
+  gap: .9rem;
+}
+
+.intro-lead h1 {
+  font-size: clamp(1.8rem, 5vw, 2.5rem);
+  font-weight: 600;
+  letter-spacing: -.035em;
+  line-height: 1.03;
+  text-wrap: balance;
+}
+
+.role {
+  font-size: .82rem;
+  color: var(--muted);
+}
+
+/* role and tag row share one line, with a divider between them */
+.role-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .7rem .85rem;
+}
+
+.role-row .role::after {
+  content: "\00B7";
+  color: var(--line-hi);
+  margin-left: .85rem;
+}
+
+/* horizontal tag row — items joined by middot separators */
+.tags {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .55rem;
+  font-size: .74rem;
+  letter-spacing: .04em;
+  color: var(--faint);
+}
+
+.tags li { display: flex; align-items: center; gap: .55rem; }
+
+.tags li:not(:last-child)::after {
+  content: "\00B7";              /* middot separator */
+  color: var(--line-hi);
+}
+
+.socials {
+  display: flex;
+  gap: .55rem;
+}
+
+.socials a {
+  width: 1.9rem;
+  height: 1.9rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.socials a:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.socials svg {
+  width: .95rem;
+  height: .95rem;
+  fill: currentColor;
+}
+
+.about {
+  display: flex;
+  flex-direction: column;
+  gap: .9rem;
+  margin-top: 2.6rem;
+}
+
+.about p {
+  font-size: .93rem;
+}
+
+.about p + p { color: var(--muted); }
+
+.manifesto {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  margin-top: 3rem;
+  /* highlighted card: dark panel with light text in both themes */
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 1.8rem 1.9rem;
+}
+
+.manifesto .section-label {
+  margin-bottom: .4rem;
+  color: #8b949e;
+  border-bottom-color: #30363d;
+}
+
+.manifesto p {
+  font-size: .95rem;
+  line-height: 1.8;
+  font-style: italic;
+  font-weight: 700;
+  color: #e6edf3;
+}
+
+/* flip to a light card in dark mode, so it still stands out against the page */
+:root[data-theme="dark"] .manifesto {
+  background: #f5f5f0;
+  border-color: #d2d2cd;
+}
+
+:root[data-theme="dark"] .manifesto .section-label {
+  color: #6e6e72;
+  border-bottom-color: #d2d2cd;
+}
+
+:root[data-theme="dark"] .manifesto p { color: #0f0f0f; }
+
+.interests {
+  display: flex;
+  flex-direction: column;
+  margin-top: 2.6rem;
+}
+
+.interests .section-label { margin-bottom: .2rem; }
+
+.int-row {
+  display: grid;
+  grid-template-columns: 9rem 1fr;
+  gap: 1rem;
+  align-items: baseline;
+  padding: .72rem 0;
+  border-bottom: 1px solid var(--line);
+  font-size: .85rem;
+}
+
+.int-row .k { font-weight: 600; }
+.int-row .v { color: var(--muted); }
+
+/* ===========================================================
+   LIST ROWS — used by both blog and projects
+   =========================================================== */
+
+.rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: grid;
+  gap: .4rem 1rem;
+  align-items: baseline;
+  width: 100%;
+  padding: .95rem .5rem .95rem 0;
+  border-bottom: 1px solid var(--line);
+  color: inherit;
+  text-decoration: none;
+}
+
+.row:hover { background: var(--hover); }
+.row:hover .title { color: var(--accent); }
+.row:hover .gh { color: var(--accent); }
+
+/* projects and blog use the blue accent on hover */
+.proj-row:hover .title { color: var(--blue); }
+.proj-row:hover .gh { color: var(--blue); }
+.blog-row:hover .title { color: var(--blue); }
+
+.row .title {
+  font-size: .95rem;
+  font-weight: 600;
+  letter-spacing: -.012em;
+}
+
+.row .desc {
+  font-size: .82rem;
+  color: var(--muted);
+}
+
+.row .date {
+  font-size: .68rem;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.row .ix {
+  font-size: .62rem;
+  color: var(--blue);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .05em;
+}
+
+.row .gh {
+  font-size: .62rem;
+  color: var(--faint);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* blog: title on the left, date on the right */
+.blog-row { grid-template-columns: 1fr auto; }
+
+/* projects: number, name, year, github — description spans below */
+.proj-row { grid-template-columns: 2rem 1fr auto auto; }
+.proj-row .ix { grid-row: span 2; }
+.proj-row .desc { grid-column: 2 / -1; }
+
+/* publications: thumbnail on the left, title/authors/venue stacked on the right */
+.pub-row {
+  grid-template-columns: 6.5rem 1fr;
+  gap: .25rem 1.1rem;
+  align-items: start;
+  padding: 1.1rem .5rem 1.1rem 0;
+}
+
+.pub-row .thumb {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  width: 6.5rem;
+  height: 4.3rem;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+}
+
+.pub-row:hover .thumb { border-color: var(--blue); }
+
+.pub-row .title,
+.pub-row .authors,
+.pub-row .venue { grid-column: 2; }
+
+.pub-row .authors {
+  font-size: .78rem;
+  color: var(--muted);
+}
+
+.pub-row .authors .me {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.pub-row .venue {
+  font-size: .72rem;
+  color: var(--faint);
+  letter-spacing: .02em;
+  margin-top: .1rem;
+}
+
+.pub-row .status {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.pub-row .arxiv {
+  color: var(--blue);
+  font-variant-numeric: tabular-nums;
+}
+
+.pub-row:hover .title { color: var(--blue); }
+
+/* ===========================================================
+   BLOG POST PAGE
+   =========================================================== */
+
+.back {
+  display: inline-block;
+  font-size: .7rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.back:hover { color: var(--accent); }
+
+.post {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+  margin-top: 1.8rem;
+}
+
+.post-head {
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+}
+
+/* Post typography has exactly three bold levels, separated by size:
+   1) title (h1, biggest)  2) section heading (h2)  3) bold points (strong).
+   All are weight 700; size alone makes the hierarchy, so nothing competes. */
+.post-head h1 {
+  font-size: clamp(1.7rem, 4.5vw, 2.1rem);
+  font-weight: 700;
+  letter-spacing: -.03em;
+  line-height: 1.1;
+  /* fill the first line before wrapping (greedy), so a long title keeps
+     most of itself on line one instead of splitting down the middle */
+  text-wrap: pretty;
+}
+
+.post-date {
+  font-size: .68rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.post-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  counter-reset: sec;   /* sec numbers the h2s; sub is reset per-section on each h2 */
+}
+
+.post-body p {
+  font-size: .95rem;
+  line-height: 1.72;
+}
+
+/* source-line caption sitting directly under a code block — pull it up
+   close to the block and render it as a small muted label, not a pill */
+.post-body .src {
+  margin-top: -.75rem;
+  font-size: .76rem;
+  color: var(--faint);
+  letter-spacing: .02em;
+}
+
+.post-body .src code {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font-size: .95em;
+}
+
+.post-body h2 {
+  margin-top: 1.7rem;
+  font-size: 1.28rem;
+  font-weight: 700;
+  letter-spacing: -.015em;
+  line-height: 1.2;
+  counter-increment: sec;
+  counter-reset: sub;        /* restart the letters at each new section */
+}
+
+.post-body h2::before {
+  content: "§" counter(sec) " — ";
+  color: var(--muted);
+}
+
+/* level-3 subheadings within a section — bold, smaller than a section
+   heading, prefixed 1a / 1b / 2a … so readers see how many are covered */
+.post-body h3 {
+  margin-top: 1.1rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  line-height: 1.25;
+  counter-increment: sub;
+}
+
+.post-body h3::before {
+  content: "▸ " counter(sec) counter(sub, lower-alpha) " — ";
+  color: var(--muted);
+}
+
+/* bulleted point list — each item can hold intro text, a code block and
+   follow-up paragraphs, so we space the item's children and hang a marker */
+.post-body ul.points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.post-body ul.points > li {
+  position: relative;
+  padding-left: 1.4rem;
+}
+
+.post-body ul.points > li::before {
+  content: "";
+  position: absolute;
+  left: .1rem;
+  top: .66em;
+  width: .34rem;
+  height: .34rem;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.post-body ul.points > li > * + * { margin-top: 1rem; }
+
+/* numbered point list — "1." "2." markers with a tabbed hanging indent */
+.post-body ol.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  counter-reset: step;
+}
+
+.post-body ol.steps > li {
+  position: relative;
+  padding-left: 2.2rem;
+  counter-increment: step;
+}
+
+.post-body ol.steps > li::before {
+  content: counter(step) ".";
+  position: absolute;
+  left: .2rem;
+  top: 0;
+  font-size: .95rem;
+  line-height: 1.72;
+  font-weight: 700;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.post-body ol.steps > li > * + * { margin-top: 1rem; }
+
+/* level 3: run-in bold points ("Inference", "1. RolloutDispatcher.").
+   Body-sized so they sit clearly below section headings. */
+.post-body strong {
+  font-weight: 700;
+}
+
+.post-body a { color: var(--accent); }
+
+/* closing "thanks for reading" line */
+.post-body > p:last-child {
+  margin-top: 1.4rem;
+  text-align: center;
+  color: var(--muted);
+}
+
+/* inline code: a soft neutral pill that blends into prose. Dark pills read
+   badly mid-sentence, so only the big blocks (pre.hl) go dark. */
+.post-body code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: .84em;
+  background: var(--hover);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: .12em .4em;
+}
+
+.post-body pre {
+  overflow-x: auto;
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
+  border-radius: 2px;
+  padding: .9rem 1rem;
+}
+
+.post-body pre code {
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+/* ---- syntax-highlighted code blocks (GitHub-dark palette, both themes) ----
+   Colours are baked into the HTML as <span class="..."> at build time via
+   Pygments, so there is no runtime library. Token classes:
+   k/kn/kc keyword · ow operator-word · bp self/cls · nb builtin
+   nf func-def · nc class · nd decorator · s string · mi/mf number · c comment */
+.post-body pre.hl {
+  background: #0d1117;
+  border-color: #30363d;
+  color: #e6edf3;
+}
+.post-body pre.hl code { color: #e6edf3; }
+
+.post-body pre.hl .k,
+.post-body pre.hl .kn,
+.post-body pre.hl .kd,
+.post-body pre.hl .kc,
+.post-body pre.hl .ow { color: #ff7b72; }              /* keywords, not/in/is */
+
+.post-body pre.hl .bp,
+.post-body pre.hl .nb { color: #ffa657; }              /* self, builtins */
+
+.post-body pre.hl .nf,
+.post-body pre.hl .nd { color: #d2a8ff; }              /* function defs, decorators */
+
+.post-body pre.hl .nc { color: #f0883e; }              /* class names */
+
+.post-body pre.hl .s,
+.post-body pre.hl .s1,
+.post-body pre.hl .s2,
+.post-body pre.hl .sa,
+.post-body pre.hl .si { color: #a5d6ff; }              /* strings */
+
+.post-body pre.hl .mi,
+.post-body pre.hl .mf,
+.post-body pre.hl .m  { color: #79c0ff; }              /* numbers */
+
+.post-body pre.hl .c,
+.post-body pre.hl .c1,
+.post-body pre.hl .cm { color: #8b949e; font-style: italic; }  /* comments */
+
+/* ===========================================================
+   SMALL SCREENS
+   =========================================================== */
+
+@media (max-width: 560px) {
+  .proj-row { grid-template-columns: 1.6rem 1fr auto; }
+  .proj-row .gh { grid-column: 2 / -1; }
+  .int-row { grid-template-columns: 1fr; gap: .15rem; }
+}
