@@ -246,7 +246,7 @@
 
         <p><code>env.run</code> is where the rollout actually runs. The env drives the agent and calls the inference server to generate, and <code>create_task</code> launches it in the background so the dispatcher can move on. There are two flavors: modern (v1) envs run one rollout at a time with <code>env.run</code>, while older (v0) envs run the whole group in one shot with <code>env.run_group</code>. Same idea, one just batches the group together.</p>
 
-        <p><strong>Permits.</strong> That <code>acquire</code> reserves "permits." A permit is just a slot for one in-flight rollout. The dispatcher has a fixed number of them, so permits are how it caps how many rollouts run at once. Start a rollout, take a permit. Finish one, give it back.</p>
+        <p><strong>Permits.</strong> The <code>acquire</code> call reserves permits. A permit is just a slot for one in-flight rollout. The dispatcher has a fixed number of them, so permits are how it caps how many rollouts run at once. Start a rollout, take a permit. Finish one, give it back.</p>
 
         <h3>next_fresh_group()</h3>
 
