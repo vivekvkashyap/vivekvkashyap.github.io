@@ -171,7 +171,7 @@
 
         <p>One thing before we start: the dispatcher is big, around 700 lines, and it does more than we'll get into here. It also cancels stale rollouts when the weights update, schedules evals, and handles shutdown, and we're skipping all of that. We'll just follow the main path, how a rollout gets scheduled, run, and handed back. That's still most of the file.</p>
 
-        <p>Back in part 1, <code>start()</code> spun the dispatcher up as a background task with <code>asyncio.create_task(self.dispatcher.start(), ...)</code>. So it runs its own loop, forever, next to the main loop.</p>
+        <p>Back in part 1, <code>start()</code> launched the dispatcher as a background task with <code>asyncio.create_task</code>, so it runs its own loop forever, next to the main loop.</p>
 
         <h3>start()</h3>
 
