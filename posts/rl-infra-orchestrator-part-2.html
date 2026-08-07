@@ -93,7 +93,7 @@
 
         <p class="src">(<code>train_sink.py:153</code>)</p>
 
-        <p><code>trace_to_samples</code> turns the rollout into <code>TrainingSample</code>s: the token ids plus a mask marking which tokens the model generated (the ones we train on) versus which are context. This runs on a worker thread so the tokenization overlaps with the dispatcher producing more rollouts, instead of blocking everything.</p>
+        <p><code>trace_to_samples</code> turns the rollout into <code>TrainingSample</code>s: the token ids, plus a mask that flags which tokens the model generated. Those are the ones we train on; the rest is context. This runs on a worker thread so the tokenization overlaps with the dispatcher producing more rollouts, instead of blocking everything.</p>
 
         <p>Errored and untrainable rollouts skip all of this. There's no point tokenizing something we're going to throw away.</p>
 
